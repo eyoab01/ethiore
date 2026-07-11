@@ -1,0 +1,168 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile containing enterprise roles and department membership",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "minLength": 3, "maxLength": 256 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "role": { "type": "string", "enum": ["Employee", "Department EO", "Store Keeper", "System Admin"] },
+        "department": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 2048 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "displayName", "role", "department"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Enterprise department of Ethiopian Reinsurance S.C.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "code": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "headUid": { "type": "string", "maxLength": 128 },
+        "headName": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "name", "code"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Inventory category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "code": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "description": { "type": "string", "maxLength": 1024 }
+      },
+      "required": ["id", "name", "code"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "External product vendor or printing partner",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "code": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "contactName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 256 },
+        "phone": { "type": "string", "maxLength": 32 },
+        "address": { "type": "string", "maxLength": 512 }
+      },
+      "required": ["id", "name", "code", "contactName", "email", "phone"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Details of an inventory or stationery asset",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sku": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "categoryId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "categoryName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "supplierId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "supplierName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 32 },
+        "reorderPoint": { "type": "number" },
+        "location": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 1024 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "sku", "categoryId", "categoryName", "supplierId", "supplierName", "quantity", "unit", "reorderPoint", "location"]
+    },
+    "Requisition": {
+      "title": "Requisition",
+      "description": "Item requisition and multi-stage workflow request",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "requestNo": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "requestedByUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "requestedByName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "requestedByEmail": { "type": "string", "format": "email", "maxLength": 256 },
+        "department": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "itemName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "itemSku": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "quantity": { "type": "number" },
+        "purpose": { "type": "string", "maxLength": 1024 },
+        "status": { "type": "string", "enum": ["Pending EO Approval", "Pending Store Issuance", "Issued", "Rejected"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "requestNo", "requestedByUid", "requestedByName", "requestedByEmail", "department", "itemId", "itemName", "itemSku", "quantity", "purpose", "status", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System transaction log for security auditing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "userId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "userName": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "userEmail": { "type": "string", "format": "email", "maxLength": 256 },
+        "userRole": { "type": "string", "maxLength": 64 },
+        "action": { "type": "string", "maxLength": 128 },
+        "details": { "type": "string", "maxLength": 1024 },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "userId", "userName", "userEmail", "userRole", "action", "details", "timestamp"]
+    },
+    "SystemNotification": {
+      "title": "SystemNotification",
+      "description": "Push notification delivered to users or specific roles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "roles": { "type": "array" },
+        "title": { "type": "string", "maxLength": 128 },
+        "message": { "type": "string", "maxLength": 1024 },
+        "type": { "type": "string", "enum": ["info", "warning", "success", "alert"] },
+        "readBy": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "message", "type", "readBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles restricted to owned reading, or general authenticated reading depending on role, and strict self-creation"
+    },
+    "departments/{departmentId}": {
+      "schema": "Department",
+      "description": "Company departments, readable by any signed in user, writable only by Admin"
+    },
+    "categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Inventory categories, readable by signed in users, writable by Store Keeper or Admin"
+    },
+    "suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Company suppliers, readable by signed in users, writable by Store Keeper or Admin"
+    },
+    "inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Inventory items and tracking data, readable by signed in users, writable by Store Keeper or Admin"
+    },
+    "requisitions/{requisitionId}": {
+      "schema": "Requisition",
+      "description": "Item requisitions under the 2-step approval workflow. Anyone can view, employees can create/update, EOs and Store Keepers can approve/issue."
+    },
+    "audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Security audit logs, readable only by Admin, writable by any logged in action"
+    },
+    "notifications/{notificationId}": {
+      "schema": "SystemNotification",
+      "description": "System-wide and role-targeted notifications. Readable by matching roles/users, writable by anyone to dispatch"
+    }
+  }
+}

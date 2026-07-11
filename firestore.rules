@@ -1,0 +1,219 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net Catch-All Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions (Primitives) ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Get the user's role from their document
+    function getUserRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+
+    function isAdmin(uid) {
+      return isSignedIn() && getUserRole(uid) == 'System Admin';
+    }
+
+    function isStoreKeeper(uid) {
+      return isSignedIn() && getUserRole(uid) == 'Store Keeper';
+    }
+
+    function isEO(uid) {
+      return isSignedIn() && getUserRole(uid) == 'Department EO';
+    }
+
+    // --- Schema Validators ---
+    function isValidUserProfile(data) {
+      return data.uid is string && data.uid.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.displayName is string && data.displayName.size() <= 128
+        && data.role is string && (data.role == 'Employee' || data.role == 'Department EO' || data.role == 'Store Keeper' || data.role == 'System Admin')
+        && data.department is string && data.department.size() <= 128
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 2048))
+        && (!('createdAt' in data) || data.createdAt is string);
+    }
+
+    function isValidDepartment(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.code is string && data.code.size() <= 32
+        && (!('headUid' in data) || (data.headUid is string && data.headUid.size() <= 128))
+        && (!('headName' in data) || (data.headName is string && data.headName.size() <= 128));
+    }
+
+    function isValidCategory(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.code is string && data.code.size() <= 32
+        && (!('description' in data) || (data.description is string && data.description.size() <= 1024));
+    }
+
+    function isValidSupplier(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.code is string && data.code.size() <= 32
+        && data.contactName is string && data.contactName.size() <= 128
+        && data.email is string && data.email.size() <= 256
+        && data.phone is string && data.phone.size() <= 32
+        && (!('address' in data) || (data.address is string && data.address.size() <= 512));
+    }
+
+    function isValidInventoryItem(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.sku is string && data.sku.size() <= 64
+        && data.categoryId is string && data.categoryId.size() <= 128
+        && data.categoryName is string && data.categoryName.size() <= 128
+        && data.supplierId is string && data.supplierId.size() <= 128
+        && data.supplierName is string && data.supplierName.size() <= 128
+        && (data.quantity is int || data.quantity is float)
+        && data.unit is string && data.unit.size() <= 32
+        && (data.reorderPoint is int || data.reorderPoint is float)
+        && data.location is string && data.location.size() <= 128
+        && (!('description' in data) || (data.description is string && data.description.size() <= 1024))
+        && (!('createdAt' in data) || data.createdAt is string);
+    }
+
+    function isValidRequisition(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.requestNo is string && data.requestNo.size() <= 64
+        && data.requestedByUid is string && data.requestedByUid.size() <= 128
+        && data.requestedByName is string && data.requestedByName.size() <= 128
+        && data.requestedByEmail is string && data.requestedByEmail.size() <= 256
+        && data.department is string && data.department.size() <= 128
+        && data.itemId is string && data.itemId.size() <= 128
+        && data.itemName is string && data.itemName.size() <= 128
+        && data.itemSku is string && data.itemSku.size() <= 64
+        && (data.quantity is int || data.quantity is float)
+        && data.purpose is string && data.purpose.size() <= 1024
+        && data.status is string && (data.status == 'Pending EO Approval' || data.status == 'Pending Store Issuance' || data.status == 'Issued' || data.status == 'Rejected')
+        && (!('eoApproval' in data) || data.eoApproval is map)
+        && (!('storeIssuance' in data) || data.storeIssuance is map)
+        && data.createdAt is string
+        && data.updatedAt is string;
+    }
+
+    function isValidAuditLog(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.userName is string && data.userName.size() <= 128
+        && data.userEmail is string && data.userEmail.size() <= 256
+        && data.userRole is string && data.userRole.size() <= 64
+        && data.action is string && data.action.size() <= 128
+        && data.details is string && data.details.size() <= 1024
+        && data.timestamp is string;
+    }
+
+    function isValidNotification(data) {
+      return data.id is string && data.id.size() <= 128
+        && (!('userId' in data) || (data.userId is string && data.userId.size() <= 128))
+        && (!('roles' in data) || data.roles is list)
+        && data.title is string && data.title.size() <= 128
+        && data.message is string && data.message.size() <= 1024
+        && data.type is string && (data.type == 'info' || data.type == 'warning' || data.type == 'success' || data.type == 'alert')
+        && data.readBy is list
+        && data.createdAt is string;
+    }
+
+    // --- Rules for 'users' Collection ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin(request.auth.uid) || isStoreKeeper(request.auth.uid) || isEO(request.auth.uid));
+      allow list: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid;
+      allow update: if isSignedIn()
+        && (request.auth.uid == userId || isAdmin(request.auth.uid))
+        && isValidUserProfile(incoming())
+        && (
+          isAdmin(request.auth.uid)
+          || (
+            incoming().role == existing().role
+            && incoming().department == existing().department
+            && incoming().uid == existing().uid
+            && incoming().email == existing().email
+            && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL'])
+          )
+        );
+      allow delete: if isSignedIn() && isAdmin(request.auth.uid);
+    }
+
+    // --- Rules for 'departments' Collection ---
+    match /departments/{departmentId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(departmentId) && (isAdmin(request.auth.uid) || isStoreKeeper(request.auth.uid)) && (request.method == 'delete' || isValidDepartment(incoming()));
+    }
+
+    // --- Rules for 'categories' Collection ---
+    match /categories/{categoryId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(categoryId) && (isAdmin(request.auth.uid) || isStoreKeeper(request.auth.uid)) && (request.method == 'delete' || isValidCategory(incoming()));
+    }
+
+    // --- Rules for 'suppliers' Collection ---
+    match /suppliers/{supplierId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(supplierId) && (isAdmin(request.auth.uid) || isStoreKeeper(request.auth.uid)) && (request.method == 'delete' || isValidSupplier(incoming()));
+    }
+
+    // --- Rules for 'inventory' Collection ---
+    match /inventory/{itemId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && isValidId(itemId) && (isAdmin(request.auth.uid) || isStoreKeeper(request.auth.uid)) && (request.method == 'delete' || isValidInventoryItem(incoming()));
+    }
+
+    // --- Rules for 'requisitions' Collection ---
+    match /requisitions/{requisitionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(requisitionId)
+        && isValidRequisition(incoming())
+        && incoming().requestedByUid == request.auth.uid;
+      allow update: if isSignedIn()
+        && isValidId(requisitionId)
+        && isValidRequisition(incoming())
+        && (
+          isAdmin(request.auth.uid)
+          || (request.auth.uid == existing().requestedByUid && existing().status == 'Pending EO Approval' && incoming().diff(existing()).affectedKeys().hasOnly(['quantity', 'purpose', 'updatedAt']))
+          || (isEO(request.auth.uid) && existing().status == 'Pending EO Approval' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'eoApproval', 'updatedAt']))
+          || (isStoreKeeper(request.auth.uid) && existing().status == 'Pending Store Issuance' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'storeIssuance', 'updatedAt']))
+        );
+      allow delete: if isSignedIn() && (isAdmin(request.auth.uid) || (request.auth.uid == existing().requestedByUid && existing().status == 'Pending EO Approval'));
+    }
+
+    // --- Rules for 'audit_logs' Collection ---
+    match /audit_logs/{logId} {
+      allow get, list: if isSignedIn() && (isAdmin(request.auth.uid) || isStoreKeeper(request.auth.uid));
+      allow create: if isSignedIn() && isValidId(logId) && isValidAuditLog(incoming());
+      allow update, delete: if false;
+    }
+
+    // --- Rules for 'notifications' Collection ---
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(notificationId) && isValidNotification(incoming());
+      allow update: if isSignedIn() && isValidId(notificationId) && isValidNotification(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['readBy']);
+      allow delete: if isSignedIn() && isAdmin(request.auth.uid);
+    }
+  }
+}

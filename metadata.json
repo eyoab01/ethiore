@@ -1,0 +1,6 @@
+{
+  "name": "Ethiopian Reinsurance S.C. Inventory Management System",
+  "description": "Enterprise Inventory Management System for Ethiopian Reinsurance S.C. featuring secure role-based access, automated workflows, and comprehensive asset auditing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
